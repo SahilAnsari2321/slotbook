@@ -1,0 +1,42 @@
+
+services:
+  db:
+    image: postgres:16
+    container_name: slotbook-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: slotbook
+      POSTGRES_PASSWORD: slotbook_dev_123
+      POSTGRES_DB: slotbook
+    ports:
+      - "5432:5432"
+    volumes:
+      - slotbook_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slotbook -d slotbook"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slotbook-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://slotbook:slotbook_dev_123@db:5432/slotbook?schema=public
+      HOST_LOGIN_EMAIL: demo@slotbook.com
+      HOST_LOGIN_PASSWORD: SlotbookDemo@2026
+      SESSION_SECRET: slotbook-dev-session-secret-change-before-production-9f82a71c
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  slotbook_pgdata:
+    name: slotbook_pgdata
+    external: true

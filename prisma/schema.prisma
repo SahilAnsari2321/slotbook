@@ -1,0 +1,124 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BookingStatus {
+  HELD
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  BOOKING_RESCHEDULED
+  BOOKING_CANCELLED
+}
+
+model Host {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String
+  email        String   @unique
+  timezone     String   @default("Asia/Kolkata")
+  slug         String   @unique
+  createdAt    DateTime @default(now())
+
+  eventTypes   EventType[]
+  availabilities Availability[]
+  dateOverrides DateOverride[]
+}
+
+model EventType {
+  id                 String   @id @default(uuid()) @db.Uuid
+  hostId             String   @db.Uuid
+  name               String
+  slug               String
+  durationMinutes    Int
+  capacity           Int      @default(1)
+  bufferBeforeMinutes Int     @default(0)
+  bufferAfterMinutes  Int     @default(0)
+  minimumNoticeMinutes Int    @default(240)
+  bookingHorizonDays Int      @default(30)
+  createdAt          DateTime @default(now())
+
+  host     Host      @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@unique([hostId, slug])
+  @@index([hostId])
+}
+
+model Availability {
+  id          String   @id @default(uuid()) @db.Uuid
+  hostId      String   @db.Uuid
+  dayOfWeek   Int
+  startMinute Int
+  endMinute   Int
+
+  host Host @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  @@index([hostId, dayOfWeek])
+}
+
+model DateOverride {
+  id          String   @id @default(uuid()) @db.Uuid
+  hostId      String   @db.Uuid
+  date        DateTime @db.Date
+  isUnavailable Boolean @default(false)
+  createdAt   DateTime @default(now())
+
+  host    Host                  @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  windows DateOverrideWindow[]
+
+  @@unique([hostId, date])
+}
+
+model DateOverrideWindow {
+  id             String @id @default(uuid()) @db.Uuid
+  dateOverrideId String @db.Uuid
+  startMinute    Int
+  endMinute      Int
+
+  dateOverride DateOverride @relation(fields: [dateOverrideId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id             String        @id @default(uuid()) @db.Uuid
+  eventTypeId    String        @db.Uuid
+  guestName      String?
+  guestEmail     String?
+  startAt        DateTime      @db.Timestamptz(3)
+  endAt          DateTime      @db.Timestamptz(3)
+  status         BookingStatus @default(HELD)
+  holdExpiresAt  DateTime?     @db.Timestamptz(3)
+  manageToken    String        @unique @default(uuid())
+  idempotencyKey String?       @unique
+  cancelReason   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  eventType EventType @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  notifications Notification[]
+
+  @@index([eventTypeId, startAt, endAt])
+  @@index([status, holdExpiresAt])
+}
+
+model Notification {
+  id          String           @id @default(uuid()) @db.Uuid
+  bookingId   String           @db.Uuid
+  type        NotificationType
+  payload     Json
+  createdAt   DateTime         @default(now())
+  processedAt DateTime?
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([processedAt, createdAt])
+}

@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+# Slotbook
 
-First, run the development server:
+Slotbook is a full-stack appointment booking application built with Next.js, TypeScript, PostgreSQL and Prisma.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Hosts can publish their availability, create event types and manage appointments. Guests can book, confirm, reschedule and cancel appointments without creating an account.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Tech Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js 16
+- TypeScript
+- PostgreSQL 16
+- Prisma ORM
+- Docker and Docker Compose
+- React
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Features
 
-## Learn More
+### Host
+- Host authentication using secure session cookies
+- Create and manage event types
+- Configure weekly availability
+- Configure date-specific availability overrides
+- View upcoming confirmed bookings
+- Cancel bookings with a reason
 
-To learn more about Next.js, take a look at the following resources:
+### Guest
+- Public booking pages
+- View available slots in browser timezone
+- Five-minute booking holds
+- Booking confirmation
+- Private booking management links
+- Reschedule and cancel bookings
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Reliability
+- PostgreSQL as the source of truth
+- Transaction-based booking protection
+- Idempotent hold creation
+- Booking expiration
+- Capacity and buffer validation
+- Minimum notice and booking horizon validation
+- Notification event records
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Architecture
 
-## Deploy on Vercel
+Next.js provides the frontend and API routes. Prisma connects the application to PostgreSQL.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+PostgreSQL manages hosts, event types, availability, bookings and notification records.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Run Locally
+
+Requirements:
+- Docker Desktop
+- Node.js
+- npm
+
+1. Clone the repository.
+2. Install dependencies:
+
+   npm install
+
+3. Create a `.env` file using `.env.example`.
+4. Start PostgreSQL:
+
+   docker compose up -d db
+
+5. Start the application:
+
+   npm run dev
+
+Alternatively, start the application and database together:
+
+   docker compose up --build
+
+Open http://localhost:3000.
+
+## Demo Login
+
+Email: demo@slotbook.com
+
+Password: SlotbookDemo@2026
+
+## API Endpoints
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | /api/hosts/{host}/events/{slug}/slots | Get available slots |
+| POST | /api/holds | Create a booking hold |
+| POST | /api/holds/{id}/confirm | Confirm booking |
+| GET | /api/bookings/{token} | Get booking details |
+| POST | /api/bookings/{token}/reschedule | Reschedule booking |
+| POST | /api/bookings/{token}/cancel | Cancel booking |
+| POST | /api/auth/login | Host login |
+| GET | /api/host/bookings | Upcoming host bookings |
+
+## Testing
+
+- Booking concurrency tested against PostgreSQL.
+- Capacity limits tested.
+- Buffer overlap validation tested.
+- Minimum notice and booking horizon tested.
+- Idempotency tested.
+- Hold expiration tested.
+- Rescheduling and cancellation tested.
+
+## Limitations
+
+- Calendar synchronization is not implemented.
+- Real email notifications are not configured.
+- Payments are outside the current scope.
+- Multi-host round-robin scheduling is not implemented.
+
+## Security Note
+
+The included demo credentials and environment configuration are for local development only. Use secure secrets and production authentication settings before deployment.
